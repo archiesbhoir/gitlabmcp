@@ -25,7 +25,6 @@ describe('normalizeMR', () => {
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-02T00:00:00Z',
           mergedAt: null,
-          changesCount: '10',
           author: {
             id: '3',
             username: 'user',
@@ -61,20 +60,6 @@ describe('normalizeMR', () => {
               },
             ],
           },
-          diffs: {
-            nodes: [
-              {
-                oldPath: 'old.js',
-                newPath: 'new.js',
-                aMode: '100644',
-                bMode: '100644',
-                diff: '--- a/old.js\n+++ b/new.js',
-                newFile: false,
-                renamedFile: true,
-                deletedFile: false,
-              },
-            ],
-          },
           pipelines: {
             nodes: [
               {
@@ -82,21 +67,13 @@ describe('normalizeMR', () => {
                 status: 'success',
                 ref: 'feature',
                 sha: 'abc123',
-                webUrl: 'https://git.egnyte-internal.com/group/project/-/pipelines/5',
                 createdAt: '2024-01-01T00:00:00Z',
                 updatedAt: '2024-01-01T01:00:00Z',
                 duration: 100,
               },
             ],
           },
-          approvals: {
-            approved: false,
-            approvedBy: {
-              nodes: [],
-            },
-            approvalsRequired: 2,
-            approvalsLeft: 2,
-          },
+          approved: false,
           discussions: {
             pageInfo: {
               hasNextPage: false,
@@ -123,12 +100,7 @@ describe('normalizeMR', () => {
           title: 'Commit 1',
         }),
       ]),
-      diffs: expect.arrayContaining([
-        expect.objectContaining({
-          oldPath: 'old.js',
-          newPath: 'new.js',
-        }),
-      ]),
+      diffs: [], // Diffs not available in GraphQL, will be empty array
       pipelines: expect.arrayContaining([
         expect.objectContaining({
           status: 'success',
@@ -136,7 +108,9 @@ describe('normalizeMR', () => {
       ]),
       approvals: expect.objectContaining({
         approved: false,
-        approvalsRequired: 2,
+        approvedBy: [],
+        approvalsRequired: 0, // Not available in GraphQL
+        approvalsLeft: 0, // Not available in GraphQL
       }),
     });
   });

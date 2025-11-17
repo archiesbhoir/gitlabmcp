@@ -8,9 +8,8 @@ A comprehensive GitLab Merge Request viewer that fetches MR data (commits, pipel
 ✅ **REST API Fallbacks** - Fallback to REST API when needed
 ✅ **Pagination Support** - Cursor-based pagination for commits and discussions
 ✅ **Caching** - LRU cache with configurable TTL (30s for MR, 2min for diffs)
-✅ **Real-time Updates** - Polling mechanism for MR updates
+✅ **Real-time Updates** - Cache-based updates with force refresh option
 ✅ **Error Handling** - Standardized errors with retry logic and rate limit handling
-✅ **Permission Detection** - Token scope validation
 ✅ **Observability** - JSON logging for requests, cache hits, and errors
 ✅ **TypeScript** - Full type safety with comprehensive interfaces
 ✅ **Testing** - Unit tests with Vitest
@@ -208,6 +207,28 @@ Fetch approval details for a merge request using REST API.
 
 **Returns:** Approval information with approvers and requirements.
 
+### `get_merge_requests_by_user`
+
+Fetch all merge requests for a given username. Supports filtering by project and state.
+
+**Parameters:**
+
+- `username` (required): GitLab username to fetch merge requests for
+- `projectPath` (optional): Filter by project path (e.g., `"delphi/delphi-platform"`). If not provided, returns MRs from all accessible projects.
+- `state` (optional): Filter by merge request state (`"opened"`, `"closed"`, `"locked"`, `"merged"`)
+
+**Returns:** Array of `MergeRequest` objects with basic information (title, state, author, assignees, labels, etc.).
+
+**Example:**
+
+```json
+{
+  "username": "johndoe",
+  "projectPath": "mygroup/myproject",
+  "state": "opened"
+}
+```
+
 ### `health_check`
 
 Check GitLab connectivity and version.
@@ -226,25 +247,6 @@ Resource URI that returns GitLab health status as JSON.
 
 You can also use the library directly in your code:
 
-### With Polling
-
-```typescript
-import { pollMergeRequest } from './src/index.js';
-
-const controller = pollMergeRequest('group/project', '123', {
-  intervalMs: 30000, // Poll every 30 seconds
-  onUpdate: (updatedView) => {
-    console.log('MR updated:', updatedView.updatedAt);
-  },
-  onError: (error) => {
-    console.error('Polling error:', error);
-  },
-});
-
-// Stop polling
-controller.stop();
-```
-
 ### With Pagination
 
 ```typescript
@@ -260,11 +262,9 @@ const allDiscussions = await fetchAllDiscussions('group/project', '123');
 ### REST Fallbacks
 
 ```typescript
-import { getMRRest, getMRCommitsRest, getMRChangesRest, getMRApprovalsRest } from './src/index.js';
+import { getMRChangesRest, getMRApprovalsRest } from './src/index.js';
 
-// Use REST API directly
-const mr = await getMRRest('group/project', '123');
-const commits = await getMRCommitsRest('group/project', '123');
+// Use REST API directly for diffs and approvals
 const changes = await getMRChangesRest('group/project', '123');
 const approvals = await getMRApprovalsRest('group/project', '123');
 ```
@@ -277,11 +277,10 @@ src/
     graphql.ts           # GraphQL client with retry logic
     rest.ts              # REST client with pagination
     mergeRequest.ts      # GraphQL-based MR fetcher
-    mergeRequestRest.ts  # REST-based MR fetchers
+    mergeRequestRest.ts  # REST-based MR fetchers (diffs, approvals)
     mergeRequestView.ts  # High-level API with caching
     normalize.ts         # Data normalization layer
     pagination.ts        # Pagination helpers
-    polling.ts           # Real-time polling
     health.ts            # Health check
   types/
     index.ts             # TypeScript interfaces
@@ -291,7 +290,6 @@ src/
     config.ts            # Configuration loader
     errors.ts            # Error types and helpers
     cache.ts             # LRU cache implementation
-    permissions.ts       # Permission checking
     logger.ts            # JSON logger
   __tests__/            # Unit tests
 ```
@@ -303,7 +301,6 @@ src/
 - `healthCheck()` - Check GitLab connectivity and version
 - `getMergeRequestView(fullPath, iid, options?)` - Get normalized MR view with caching
 - `getMergeRequest(fullPath, iid, options?)` - Get raw GraphQL MR data
-- `pollMergeRequest(fullPath, iid, options?)` - Poll for MR updates
 
 ### Pagination
 
@@ -314,11 +311,9 @@ src/
 
 ### REST API
 
-- `getMRRest(projectId, iid, options?)` - Get MR via REST
-- `getMRCommitsRest(projectId, iid, options?)` - Get commits via REST
 - `getMRChangesRest(projectId, iid, options?)` - Get changes/diffs via REST
 - `getMRApprovalsRest(projectId, iid, options?)` - Get approvals via REST
-- `getMRPipelinesRest(projectId, sha, options?)` - Get pipelines via REST
+- `getMRsByUsername(username, options?)` - Get all merge requests for a username via REST
 
 ## Error Handling
 

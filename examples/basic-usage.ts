@@ -1,12 +1,7 @@
 /**
  * Basic usage example for GitLab MCP
  */
-import {
-  healthCheck,
-  getMergeRequestView,
-  pollMergeRequest,
-  getDefaultCache,
-} from '../src/index.js';
+import { healthCheck, getMergeRequestView } from '../src/index.js';
 
 async function main() {
   try {
@@ -26,7 +21,8 @@ async function main() {
 
     console.log(`\nFetching MR !${iid} from ${fullPath}...`);
     const mrView = await getMergeRequestView(fullPath, iid, {
-      useCache: true,
+      commitsFirst: 50,
+      discussionsFirst: 50,
       forceRefresh: false,
     });
 
@@ -39,26 +35,6 @@ async function main() {
     console.log(`  Diffs: ${mrView.diffs.length}`);
     console.log(`  Discussions: ${mrView.discussions.length}`);
     console.log(`  Approvals: ${mrView.approvals.approved ? 'Approved' : 'Pending'}`);
-
-    // 3. Poll for updates (optional)
-    console.log('\nStarting polling (will stop after 60 seconds)...');
-    const controller = pollMergeRequest(fullPath, iid, {
-      intervalMs: 30000, // 30 seconds
-      onUpdate: (updatedView) => {
-        console.log(`\nMR updated at ${updatedView.updatedAt}`);
-        console.log(`  New state: ${updatedView.state}`);
-      },
-      onError: (error) => {
-        console.error('Polling error:', error.message);
-      },
-    });
-
-    // Stop polling after 60 seconds
-    setTimeout(() => {
-      controller.stop();
-      console.log('\nPolling stopped');
-      process.exit(0);
-    }, 60000);
   } catch (error) {
     console.error('Error:', error);
     process.exit(1);

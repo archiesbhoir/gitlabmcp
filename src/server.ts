@@ -17,6 +17,7 @@ import {
   fetchAllDiscussions,
   getMRChangesRest,
   getMRApprovalsRest,
+  getMRsByUsername,
 } from './api/index.js';
 import { getLogger } from './utils/logger.js';
 import { GitLabError } from './utils/errors.js';
@@ -170,6 +171,29 @@ class GitLabMCPServer {
           inputSchema: {
             type: 'object',
             properties: {},
+          },
+        },
+        {
+          name: 'get_merge_requests_by_user',
+          description: 'Fetch all merge requests for a given username. Supports filtering by project and state.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              username: {
+                type: 'string',
+                description: 'GitLab username to fetch merge requests for',
+              },
+              projectPath: {
+                type: 'string',
+                description: 'Optional: Filter by project path (e.g., "group/project"). If not provided, returns MRs from all accessible projects.',
+              },
+              state: {
+                type: 'string',
+                enum: ['opened', 'closed', 'locked', 'merged'],
+                description: 'Optional: Filter by merge request state',
+              },
+            },
+            required: ['username'],
           },
         },
       ],
@@ -338,6 +362,34 @@ class GitLabMCPServer {
                 {
                   type: 'text',
                   text: JSON.stringify(health, null, 2),
+                },
+              ],
+            };
+          }
+
+          case 'get_merge_requests_by_user': {
+            const {
+              username,
+              projectPath,
+              state,
+            } = args as {
+              username: string;
+              projectPath?: string;
+              state?: 'opened' | 'closed' | 'locked' | 'merged';
+            };
+
+            logger.info('Fetching merge requests by username', { username, projectPath, state });
+
+            const mrs = await getMRsByUsername(username, {
+              projectPath,
+              state,
+            });
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(mrs, null, 2),
                 },
               ],
             };
