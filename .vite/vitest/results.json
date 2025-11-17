@@ -1,0 +1,1 @@
+{"version":"1.6.1","results":[[":src/api/__tests__/normalize.test.ts",{"duration":10,"failed":true}],[":src/api/__tests__/graphql.test.ts",{"duration":1478,"failed":false}],[":src/api/__tests__/rest.test.ts",{"duration":5,"failed":false}],[":src/api/__tests__/e2e.test.ts",{"duration":0,"failed":false}]]}

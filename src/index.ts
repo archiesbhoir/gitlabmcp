@@ -1,0 +1,20 @@
+/**
+ * Main entry point for GitLab MCP
+ */
+
+export * from './api/health.js';
+export * from './api/graphql.js';
+export * from './api/rest.js';
+export * from './api/mergeRequest.js';
+export * from './api/mergeRequestRest.js';
+export * from './api/pagination.js';
+export * from './api/normalize.js';
+export * from './api/mergeRequestView.js';
+export * from './api/polling.js';
+export * from './types/index.js';
+export * from './utils/config.js';
+export * from './utils/errors.js';
+export * from './utils/cache.js';
+export * from './utils/permissions.js';
+export * from './utils/logger.js';
+export * from './queries/mergeRequest.js';
