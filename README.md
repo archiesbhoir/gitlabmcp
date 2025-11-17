@@ -40,9 +40,68 @@ npm run build
 
 ## Running the MCP Server
 
-The MCP server communicates via stdio and is designed to be used with MCP-compatible clients (like Claude Desktop, Cursor, etc.).
+The MCP server supports two transport modes:
 
-### Start the server:
+### 1. HTTP Server (Recommended for Multi-Client Access)
+
+The HTTP server allows multiple clients to connect simultaneously via HTTP/SSE.
+
+#### Using Docker (Recommended):
+
+```bash
+# Build and run with docker-compose (easiest)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the server
+docker-compose down
+
+# Or build and run manually
+docker build -t gitlab-mcp .
+docker run -p 8080:8080 --env-file .env gitlab-mcp
+```
+
+**Docker Compose** automatically:
+- Builds the Docker image
+- Exposes port 8080
+- Loads environment variables from `.env` file
+- Sets up health checks
+- Restarts on failure
+
+#### Using Node.js directly:
+
+```bash
+npm run build
+npm run start:http
+```
+
+The server will start on `http://localhost:8080` by default (configurable via `PORT` env var).
+
+**Endpoints:**
+- `GET /health` - Health check endpoint
+- `POST /mcp` - MCP protocol endpoint
+- `GET /mcp/sse` - Server-Sent Events endpoint for streaming
+
+**MCP Client Configuration (HTTP):**
+
+For HTTP-based MCP clients, configure:
+
+```json
+{
+  "mcpServers": {
+    "gitlab-mcp": {
+      "url": "http://localhost:8080/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+### 2. Stdio Server (Single Client)
+
+For single-client stdio-based communication:
 
 ```bash
 npm start
@@ -54,9 +113,9 @@ Or directly:
 node dist/server.js
 ```
 
-### MCP Client Configuration
+**MCP Client Configuration (Stdio):**
 
-To use this server with an MCP client, add it to your client configuration. For example, in Claude Desktop's `claude_desktop_config.json`:
+For stdio-based MCP clients (like Claude Desktop):
 
 ```json
 {
@@ -73,7 +132,7 @@ To use this server with an MCP client, add it to your client configuration. For 
 }
 ```
 
-Or use environment variables from `.env` file (the server will automatically load them).
+The server automatically loads environment variables from `.env` file.
 
 ## Development
 

@@ -2,8 +2,13 @@
  * Configuration loader from environment variables
  */
 import dotenv from 'dotenv';
+import { existsSync } from 'fs';
 
-dotenv.config();
+// Only load .env file if it exists (for local development)
+// In Docker, environment variables are passed directly, so .env file won't exist
+if (existsSync('.env')) {
+  dotenv.config();
+}
 
 export interface Config {
   gitlabBaseUrl: string;
