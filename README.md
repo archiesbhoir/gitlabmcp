@@ -4,28 +4,63 @@ A comprehensive GitLab Merge Request viewer that fetches MR data (commits, pipel
 
 ## Features
 
-✅ **GraphQL API Integration** - Primary data fetching via GitLab GraphQL API
-✅ **REST API Fallbacks** - Fallback to REST API when needed
-✅ **Pagination Support** - Cursor-based pagination for commits and discussions
-✅ **Caching** - LRU cache with configurable TTL (30s for MR, 2min for diffs)
-✅ **Real-time Updates** - Cache-based updates with force refresh option
-✅ **Error Handling** - Standardized errors with retry logic and rate limit handling
-✅ **Observability** - JSON logging for requests, cache hits, and errors
-✅ **TypeScript** - Full type safety with comprehensive interfaces
-✅ **Testing** - Unit tests with Vitest
+✅ **GraphQL API Integration** - Primary data fetching via GitLab GraphQL API  
+✅ **REST API Fallbacks** - Fallback to REST API when needed  
+✅ **Pagination Support** - Cursor-based pagination for commits and discussions  
+✅ **Caching** - LRU cache with configurable TTL (30s for MR, 2min for diffs)  
+✅ **Real-time Updates** - Cache-based updates with force refresh option  
+✅ **Error Handling** - Standardized errors with retry logic and rate limit handling  
+✅ **Observability** - JSON logging for requests, cache hits, and errors  
+✅ **TypeScript** - Full type safety with comprehensive interfaces  
+✅ **Testing** - Unit tests with Vitest  
+✅ **Dual Transport** - Supports both stdio (MCP clients) and HTTP (REST API) servers
 
-## Setup
+## Quick Start
 
-1. Install dependencies:
+### Using npx (Recommended)
+
+Run directly without installation:
 
 ```bash
+# Stdio server (for MCP clients like Claude Desktop)
+npx @archisbhoir/gitlabmcp@latest
+
+# HTTP server (for REST API access)
+npx -p @archisbhoir/gitlabmcp@latest node dist/server-http.js
+```
+
+Set environment variables:
+```bash
+export GITLAB_BASE_URL=https://gitlab.example.com
+export GITLAB_TOKEN=your_token_here
+```
+
+### Install from npm
+
+```bash
+npm install -g @archisbhoir/gitlabmcp
+
+# Run stdio server
+gitlabmcp
+
+# Run HTTP server
+gitlabmcp-http
+```
+
+### Local Development Setup
+
+1. Clone and install dependencies:
+
+```bash
+git clone https://github.com/archisbhoir/gitlabmcp.git
+cd gitlabmcp
 npm install
 ```
 
 2. Create `.env` file with your GitLab credentials:
 
 ```bash
-GITLAB_BASE_URL=https://git.egnyte-internal.com
+GITLAB_BASE_URL=https://gitlab.example.com
 GITLAB_TOKEN=your_token_here
 ```
 
@@ -39,53 +74,99 @@ npm run build
 
 ## Running the MCP Server
 
-The MCP server supports two transport modes:
+The package provides two server modes:
 
-### 1. HTTP Server (Recommended for Multi-Client Access)
+### 1. Stdio Server (Default - for MCP Clients)
 
-The HTTP server allows multiple clients to connect simultaneously via HTTP/SSE.
+The stdio server communicates via stdin/stdout, ideal for MCP clients like Claude Desktop.
 
-#### Using Docker (Recommended):
-
+**Run with npx:**
 ```bash
-# Build and run with docker-compose (easiest)
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop the server
-docker-compose down
-
-# Or build and run manually
-docker build -t gitlab-mcp .
-docker run -p 8080:8080 --env-file .env gitlab-mcp
+npx @archisbhoir/gitlabmcp@latest
 ```
 
-**Docker Compose** automatically:
-- Builds the Docker image
-- Exposes port 8080
-- Loads environment variables from `.env` file
-- Sets up health checks
-- Restarts on failure
+**Run after global install:**
+```bash
+gitlabmcp
+```
 
-#### Using Node.js directly:
+**Run locally:**
+```bash
+npm run build
+npm start
+# or
+node dist/server.js
+```
 
+**MCP Client Configuration (Stdio):**
+
+For stdio-based MCP clients (like Claude Desktop):
+
+```json
+{
+  "mcpServers": {
+    "gitlab-mcp": {
+      "command": "npx",
+      "args": ["@archisbhoir/gitlabmcp@latest"],
+      "env": {
+        "GITLAB_BASE_URL": "https://gitlab.example.com",
+        "GITLAB_TOKEN": "your_token_here"
+      }
+    }
+  }
+}
+```
+
+Or if installed globally:
+
+```json
+{
+  "mcpServers": {
+    "gitlab-mcp": {
+      "command": "gitlabmcp",
+      "env": {
+        "GITLAB_BASE_URL": "https://gitlab.example.com",
+        "GITLAB_TOKEN": "your_token_here"
+      }
+    }
+  }
+}
+```
+
+### 2. HTTP Server (for REST API & Multi-Client Access)
+
+The HTTP server allows multiple clients to connect simultaneously via HTTP/SSE and provides REST API endpoints.
+
+**Run with npx:**
+```bash
+npx -p @archisbhoir/gitlabmcp@latest node dist/server-http.js
+```
+
+**Run after global install:**
+```bash
+gitlabmcp-http
+```
+
+**Run locally:**
 ```bash
 npm run build
 npm run start:http
+# or
+node dist/server-http.js
 ```
 
-The server will start on `http://localhost:8080` by default (configurable via `PORT` env var).
+The server starts on `http://localhost:8080` by default (configurable via `PORT` env var).
 
 **Endpoints:**
 - `GET /health` - Health check endpoint
-- `POST /mcp` - MCP protocol endpoint
+- `POST /mcp` - MCP protocol endpoint (JSON-RPC 2.0)
+- `GET /api/tools` - List available tools
+- `POST /api/tools/:toolName` - Call a tool via REST API
 - `GET /mcp/sse` - Server-Sent Events endpoint for streaming
 
 **MCP Client Configuration (HTTP):**
 
-For HTTP-based MCP clients, configure:
+For HTTP-based MCP clients:
 
 ```json
 {
@@ -98,40 +179,19 @@ For HTTP-based MCP clients, configure:
 }
 ```
 
-### 2. Stdio Server (Single Client)
-
-For single-client stdio-based communication:
+**REST API Usage:**
 
 ```bash
-npm start
+# List available tools
+curl http://localhost:8080/api/tools
+
+# Call a tool
+curl -X POST http://localhost:8080/api/tools/get_merge_request \
+  -H "Content-Type: application/json" \
+  -d '{"projectPath": "group/project", "iid": "123"}'
 ```
 
-Or directly:
-
-```bash
-node dist/server.js
-```
-
-**MCP Client Configuration (Stdio):**
-
-For stdio-based MCP clients (like Claude Desktop):
-
-```json
-{
-  "mcpServers": {
-    "gitlab-mcp": {
-      "command": "node",
-      "args": ["/path/to/gitlabmcp/dist/server.js"],
-      "env": {
-        "GITLAB_BASE_URL": "https://git.egnyte-internal.com",
-        "GITLAB_TOKEN": "your_token_here"
-      }
-    }
-  }
-}
-```
-
-The server automatically loads environment variables from `.env` file.
+Both servers automatically load environment variables from `.env` file if present.
 
 ## Development
 
@@ -153,7 +213,7 @@ Fetch a complete merge request with all data.
 
 **Parameters:**
 
-- `projectPath` (required): Full project path (e.g., `"delphi/delphi-platform"`)
+- `projectPath` (required): Full project path (e.g., `"group/project"`)
 - `iid` (required): Merge request IID (e.g., `"123"`)
 - `includeCommits` (optional): Include commits (default: `true`)
 - `includeDiscussions` (optional): Include discussions (default: `true`)
@@ -214,7 +274,7 @@ Fetch all merge requests for a given username. Supports filtering by project and
 **Parameters:**
 
 - `username` (required): GitLab username to fetch merge requests for
-- `projectPath` (optional): Filter by project path (e.g., `"delphi/delphi-platform"`). If not provided, returns MRs from all accessible projects.
+- `projectPath` (optional): Filter by project path (e.g., `"group/project"`). If not provided, returns MRs from all accessible projects.
 - `state` (optional): Filter by merge request state (`"opened"`, `"closed"`, `"locked"`, `"merged"`)
 
 **Returns:** Array of `MergeRequest` objects with basic information (title, state, author, assignees, labels, etc.).
@@ -235,7 +295,7 @@ Create a new merge request. Requires `api` scope in token.
 
 **Parameters:**
 
-- `projectPath` (required): Full project path (e.g., `"delphi/delphi-platform"`)
+- `projectPath` (required): Full project path (e.g., `"group/project"`)
 - `sourceBranch` (required): Source branch to merge from
 - `targetBranch` (required): Target branch to merge into
 - `title` (required): Merge request title
@@ -282,10 +342,16 @@ Resource URI that returns GitLab health status as JSON.
 
 You can also use the library directly in your code:
 
+### Installation
+
+```bash
+npm install @archisbhoir/gitlabmcp
+```
+
 ### With Pagination
 
 ```typescript
-import { fetchAllCommits, fetchAllDiscussions } from './src/index.js';
+import { fetchAllCommits, fetchAllDiscussions } from '@archisbhoir/gitlabmcp';
 
 // Fetch all commits (handles pagination automatically)
 const allCommits = await fetchAllCommits('group/project', '123');
@@ -297,7 +363,7 @@ const allDiscussions = await fetchAllDiscussions('group/project', '123');
 ### REST Fallbacks
 
 ```typescript
-import { getMRChangesRest, getMRApprovalsRest } from './src/index.js';
+import { getMRChangesRest, getMRApprovalsRest } from '@archisbhoir/gitlabmcp';
 
 // Use REST API directly for diffs and approvals
 const changes = await getMRChangesRest('group/project', '123');
@@ -326,7 +392,10 @@ src/
     errors.ts            # Error types and helpers
     cache.ts             # LRU cache implementation
     logger.ts            # JSON logger
-  __tests__/            # Unit tests
+  server.ts              # Stdio MCP server
+  server-http.ts         # HTTP MCP server
+  index.ts               # Main library exports
+  __tests__/             # Unit tests
 ```
 
 ## API Reference
@@ -413,14 +482,14 @@ npm run test:e2e
 **Example:**
 
 ```bash
-export GITLAB_BASE_URL=https://git.egnyte-internal.com
+export GITLAB_BASE_URL=https://gitlab.example.com
 export GITLAB_TOKEN=your_token_here
 export E2E_TEST_PROJECT_PATH=your-group/your-project
 export E2E_TEST_MR_IID=123
 npm run test:e2e
 ```
 
-**Note:** Replace `your-group/your-project` with an actual project path from your GitLab instance, and `123` with a real merge request IID.
+**Note:** Replace `https://gitlab.example.com` with your GitLab instance URL, `your-group/your-project` with an actual project path, and `123` with a real merge request IID.
 
 ### Coverage
 
@@ -429,6 +498,30 @@ Generate coverage reports:
 ```bash
 npm test -- --coverage
 ```
+
+## Publishing
+
+This package is published to npm as `@archisbhoir/gitlabmcp`. To publish updates:
+
+1. Update version:
+   ```bash
+   npm version patch  # 0.1.0 -> 0.1.1
+   npm version minor  # 0.1.0 -> 0.2.0
+   npm version major  # 0.1.0 -> 1.0.0
+   ```
+
+2. Build and publish:
+   ```bash
+   npm run build
+   npm publish --access public
+   ```
+
+3. Push version tag:
+   ```bash
+   git push --tags
+   ```
+
+The `prepublishOnly` script automatically builds the project before publishing.
 
 ## License
 
