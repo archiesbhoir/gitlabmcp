@@ -1,6 +1,3 @@
-/**
- * Re-export all API functions for server use
- */
 export * from './health.js';
 export * from './graphql.js';
 export * from './rest.js';

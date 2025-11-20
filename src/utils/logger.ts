@@ -1,7 +1,3 @@
-/**
- * Minimal JSON logger for observability
- */
-
 export enum LogLevel {
   DEBUG = 'debug',
   INFO = 'info',
@@ -67,12 +63,8 @@ class JSONLogger implements Logger {
   }
 }
 
-// Singleton logger instance
 let defaultLogger: Logger | null = null;
 
-/**
- * Get or create default logger instance
- */
 export function getLogger(minLevel?: LogLevel): Logger {
   if (!defaultLogger) {
     defaultLogger = new JSONLogger(minLevel);
@@ -80,9 +72,6 @@ export function getLogger(minLevel?: LogLevel): Logger {
   return defaultLogger;
 }
 
-/**
- * Set default logger instance
- */
 export function setLogger(logger: Logger): void {
   defaultLogger = logger;
 }

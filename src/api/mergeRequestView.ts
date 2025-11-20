@@ -1,6 +1,3 @@
-/**
- * High-level API for fetching normalized MergeRequestView with caching
- */
 import { getMergeRequest, GetMergeRequestOptions } from './mergeRequest.js';
 import { normalizeMR } from './normalize.js';
 import { getDefaultCache, MRCache } from '../utils/cache.js';
@@ -13,9 +10,6 @@ export interface GetMergeRequestViewOptions extends GetMergeRequestOptions {
   cache?: MRCache;
 }
 
-/**
- * Get normalized MergeRequestView with caching support
- */
 export async function getMergeRequestView(
   fullPath: string,
   iid: string,
@@ -28,7 +22,6 @@ export async function getMergeRequestView(
     ...graphqlOptions
   } = options;
 
-  // Check cache first
   if (useCache && !forceRefresh) {
     const cached = cache.get(fullPath, iid);
     if (cached) {
@@ -37,25 +30,20 @@ export async function getMergeRequestView(
   }
 
   try {
-    // Fetch from GraphQL
     const data = await getMergeRequest(fullPath, iid, graphqlOptions);
 
-    // Normalize the response
     const view = normalizeMR(data);
 
-    // Cache the result
     if (useCache) {
       cache.set(fullPath, iid, view);
     }
 
     return view;
   } catch (error) {
-    // Re-throw GitLab errors as-is
     if (error instanceof Error && 'code' in error) {
       throw error;
     }
 
-    // Wrap unknown errors
     throw createGitLabError(
       GitLabErrorCode.GITLAB_UNKNOWN_ERR,
       `Failed to fetch merge request view: ${error instanceof Error ? error.message : 'Unknown error'}`

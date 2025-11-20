@@ -1,11 +1,7 @@
-/**
- * Unit tests for GraphQL client
- */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { graphqlRequest } from '../graphql.js';
 import { GitLabErrorCode } from '../../utils/errors.js';
 
-// Mock fetch
 global.fetch = vi.fn();
 
 describe('graphqlRequest', () => {

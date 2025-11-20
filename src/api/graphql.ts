@@ -1,6 +1,3 @@
-/**
- * GraphQL API client for GitLab
- */
 import { loadConfig } from '../utils/config.js';
 import { GitLabErrorCode, createGitLabError } from '../utils/errors.js';
 import { getLogger } from '../utils/logger.js';
@@ -19,9 +16,6 @@ export interface GraphQLRequestOptions {
   retryDelay?: number;
 }
 
-/**
- * Make a GraphQL request to GitLab
- */
 export async function graphqlRequest<T = unknown>(
   query: string,
   variables?: Record<string, unknown>,
@@ -51,13 +45,11 @@ export async function graphqlRequest<T = unknown>(
         }),
       });
 
-      // Handle rate limiting
       if (response.status === 429) {
         const retryAfter = response.headers.get('Retry-After');
         const retryAfterSeconds = retryAfter ? parseInt(retryAfter, 10) : 60;
 
         if (attempt < retries) {
-          // Add jitter to retry delay
           const jitter = Math.random() * 1000;
           await new Promise((resolve) => setTimeout(resolve, retryAfterSeconds * 1000 + jitter));
           continue;
@@ -71,7 +63,6 @@ export async function graphqlRequest<T = unknown>(
         );
       }
 
-      // Handle authentication errors
       if (response.status === 401 || response.status === 403) {
         throw createGitLabError(
           GitLabErrorCode.GITLAB_AUTH_ERR,
@@ -90,7 +81,6 @@ export async function graphqlRequest<T = unknown>(
 
       const result = (await response.json()) as GraphQLResponse<T>;
 
-      // Handle GraphQL errors
       if (result.errors && result.errors.length > 0) {
         const errorMessages = result.errors.map((e) => e.message).join(', ');
         throw createGitLabError(
@@ -113,7 +103,6 @@ export async function graphqlRequest<T = unknown>(
     } catch (error) {
       lastError = error as Error;
 
-      // Don't retry on auth errors
       if (error instanceof Error && 'code' in error) {
         const gitlabError = error as { code: GitLabErrorCode };
         if (
@@ -128,7 +117,6 @@ export async function graphqlRequest<T = unknown>(
         }
       }
 
-      // Retry with exponential backoff and jitter
       if (attempt < retries) {
         const jitter = Math.random() * 500;
         const delay = retryDelay * Math.pow(2, attempt) + jitter;
@@ -143,7 +131,6 @@ export async function graphqlRequest<T = unknown>(
     }
   }
 
-  // If we get here, all retries failed
   if (lastError) {
     if (lastError instanceof Error && 'code' in lastError) {
       throw lastError;

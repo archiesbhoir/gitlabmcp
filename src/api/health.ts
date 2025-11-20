@@ -1,6 +1,3 @@
-/**
- * Health check and connectivity verification
- */
 import { loadConfig } from '../utils/config.js';
 import { GitLabErrorCode, createGitLabError } from '../utils/errors.js';
 
@@ -10,9 +7,6 @@ export interface HealthCheckResult {
   error?: string;
 }
 
-/**
- * Check GitLab connectivity and return version info
- */
 export async function healthCheck(): Promise<HealthCheckResult> {
   const config = loadConfig();
   const url = `${config.gitlabBaseUrl}/api/v4/version`;

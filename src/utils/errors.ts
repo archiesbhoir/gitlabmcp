@@ -1,7 +1,3 @@
-/**
- * Standardized error types for GitLab API interactions
- */
-
 export enum GitLabErrorCode {
   GITLAB_NET_ERR = 'GITLAB_NET_ERR',
   GITLAB_AUTH_ERR = 'GITLAB_AUTH_ERR',

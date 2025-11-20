@@ -1,7 +1,3 @@
-/**
- * GraphQL queries for Merge Requests
- */
-
 export const MR_FULL_QUERY = `
   query GetMergeRequest($fullPath: ID!, $iid: String!, $commitsFirst: Int, $discussionsFirst: Int, $commitsAfter: String, $discussionsAfter: String) {
     project(fullPath: $fullPath) {

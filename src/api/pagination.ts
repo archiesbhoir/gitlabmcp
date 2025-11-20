@@ -1,6 +1,3 @@
-/**
- * Pagination helpers for commits and discussions
- */
 import { getMergeRequest, GetMergeRequestOptions } from './mergeRequest.js';
 import { Commit, Discussion } from '../types/index.js';
 
@@ -14,9 +11,6 @@ export interface PaginatedResult<T> {
   pageInfo: PageInfo;
 }
 
-/**
- * Fetch more commits using cursor pagination
- */
 export async function fetchMoreCommits(
   fullPath: string,
   iid: string,
@@ -58,9 +52,6 @@ export async function fetchMoreCommits(
   };
 }
 
-/**
- * Fetch more discussions using cursor pagination
- */
 export async function fetchMoreDiscussions(
   fullPath: string,
   iid: string,
@@ -119,9 +110,6 @@ export async function fetchMoreDiscussions(
   };
 }
 
-/**
- * Deduplicate items by ID
- */
 export function deduplicateById<T extends { id: string }>(items: T[]): T[] {
   const seen = new Set<string>();
   return items.filter((item) => {
@@ -133,9 +121,6 @@ export function deduplicateById<T extends { id: string }>(items: T[]): T[] {
   });
 }
 
-/**
- * Fetch all commits with pagination
- */
 export async function fetchAllCommits(
   fullPath: string,
   iid: string,
@@ -145,13 +130,11 @@ export async function fetchAllCommits(
   let cursor: string | null = null;
   let hasMore = true;
 
-  // First page
   const firstPage = await fetchMoreCommits(fullPath, iid, '', options);
   allCommits.push(...firstPage.items);
   cursor = firstPage.pageInfo.endCursor;
   hasMore = firstPage.pageInfo.hasNextPage;
 
-  // Subsequent pages
   while (hasMore && cursor) {
     const page = await fetchMoreCommits(fullPath, iid, cursor, options);
     allCommits.push(...page.items);
@@ -162,9 +145,6 @@ export async function fetchAllCommits(
   return deduplicateById(allCommits);
 }
 
-/**
- * Fetch all discussions with pagination
- */
 export async function fetchAllDiscussions(
   fullPath: string,
   iid: string,
@@ -174,13 +154,11 @@ export async function fetchAllDiscussions(
   let cursor: string | null = null;
   let hasMore = true;
 
-  // First page
   const firstPage = await fetchMoreDiscussions(fullPath, iid, '', options);
   allDiscussions.push(...firstPage.items);
   cursor = firstPage.pageInfo.endCursor;
   hasMore = firstPage.pageInfo.hasNextPage;
 
-  // Subsequent pages
   while (hasMore && cursor) {
     const page = await fetchMoreDiscussions(fullPath, iid, cursor, options);
     allDiscussions.push(...page.items);

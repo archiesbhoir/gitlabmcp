@@ -1,7 +1,3 @@
-/**
- * Main entry point for GitLab MCP
- */
-
 export * from './api/health.js';
 export * from './api/graphql.js';
 export * from './api/rest.js';

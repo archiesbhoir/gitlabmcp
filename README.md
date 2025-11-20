@@ -229,6 +229,41 @@ Fetch all merge requests for a given username. Supports filtering by project and
 }
 ```
 
+### `create_merge_request`
+
+Create a new merge request. Requires `api` scope in token.
+
+**Parameters:**
+
+- `projectPath` (required): Full project path (e.g., `"delphi/delphi-platform"`)
+- `sourceBranch` (required): Source branch to merge from
+- `targetBranch` (required): Target branch to merge into
+- `title` (required): Merge request title
+- `description` (optional): Merge request description
+- `assigneeIds` (optional): Array of user IDs to assign
+- `reviewerIds` (optional): Array of user IDs to request review from
+- `labels` (optional): Array of label names
+- `removeSourceBranch` (optional): Remove source branch when MR is merged
+- `squash` (optional): Squash commits when merging
+
+**Returns:** Created `MergeRequest` object with full details.
+
+**Example:**
+
+```json
+{
+  "projectPath": "mygroup/myproject",
+  "sourceBranch": "feature-branch",
+  "targetBranch": "main",
+  "title": "Add new feature",
+  "description": "This MR adds a new feature",
+  "labels": ["feature", "enhancement"],
+  "removeSourceBranch": true
+}
+```
+
+**Note:** Your GitLab token must have `api` scope (not just `read_api`) to create merge requests.
+
 ### `health_check`
 
 Check GitLab connectivity and version.
@@ -314,6 +349,7 @@ src/
 - `getMRChangesRest(projectId, iid, options?)` - Get changes/diffs via REST
 - `getMRApprovalsRest(projectId, iid, options?)` - Get approvals via REST
 - `getMRsByUsername(username, options?)` - Get all merge requests for a username via REST
+- `createMergeRequest(projectPath, options)` - Create a new merge request via REST (requires api scope)
 
 ## Error Handling
 

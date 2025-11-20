@@ -1,8 +1,4 @@
 #!/usr/bin/env node
-/**
- * MCP Server for GitLab Merge Request Viewer - HTTP/SSE Transport
- * Supports multiple concurrent clients via HTTP with Server-Sent Events
- */
 import express from 'express';
 import {
   getMergeRequestView,
@@ -12,6 +8,7 @@ import {
   getMRChangesRest,
   getMRApprovalsRest,
   getMRsByUsername,
+  createMergeRequest,
 } from './api/index.js';
 import { getLogger } from './utils/logger.js';
 import { GitLabError } from './utils/errors.js';
@@ -23,7 +20,6 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 8080;
 
-// CORS middleware for multi-client access
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -35,7 +31,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check endpoint
 app.get('/health', async (_req, res) => {
   try {
     const health = await healthCheck();
@@ -47,7 +42,6 @@ app.get('/health', async (_req, res) => {
   }
 });
 
-// Helper function to handle tool calls
 async function handleToolCall(name: string, args: unknown): Promise<unknown> {
   switch (name) {
     case 'get_merge_request': {
@@ -77,7 +71,6 @@ async function handleToolCall(name: string, args: unknown): Promise<unknown> {
         forceRefresh,
       });
 
-      // Fetch additional data if requested
       if (includeDiffs) {
         try {
           const changes = await getMRChangesRest(projectPath, iid);
@@ -184,11 +177,7 @@ async function handleToolCall(name: string, args: unknown): Promise<unknown> {
     }
 
     case 'get_merge_requests_by_user': {
-      const {
-        username,
-        projectPath,
-        state,
-      } = args as {
+      const { username, projectPath, state } = args as {
         username: string;
         projectPath?: string;
         state?: 'opened' | 'closed' | 'locked' | 'merged';
@@ -211,17 +200,64 @@ async function handleToolCall(name: string, args: unknown): Promise<unknown> {
       };
     }
 
+    case 'create_merge_request': {
+      const {
+        projectPath,
+        sourceBranch,
+        targetBranch,
+        title,
+        description,
+        assigneeIds,
+        reviewerIds,
+        labels,
+        removeSourceBranch,
+        squash,
+      } = args as {
+        projectPath: string;
+        sourceBranch: string;
+        targetBranch: string;
+        title: string;
+        description?: string;
+        assigneeIds?: number[];
+        reviewerIds?: number[];
+        labels?: string[];
+        removeSourceBranch?: boolean;
+        squash?: boolean;
+      };
+
+      logger.info('Creating merge request', { projectPath, sourceBranch, targetBranch, title });
+
+      const mr = await createMergeRequest(projectPath, {
+        sourceBranch,
+        targetBranch,
+        title,
+        description,
+        assigneeIds,
+        reviewerIds,
+        labels,
+        removeSourceBranch,
+        squash,
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(mr, null, 2),
+          },
+        ],
+      };
+    }
+
     default:
       throw new Error(`Unknown tool: ${name}`);
   }
 }
 
-// MCP protocol endpoint - handles MCP JSON-RPC style requests
 app.post('/mcp', async (req, res) => {
   try {
     const { jsonrpc, method, params, id } = req.body;
 
-    // Validate JSON-RPC 2.0 format
     if (jsonrpc !== '2.0') {
       return res.status(400).json({
         jsonrpc: '2.0',
@@ -230,14 +266,11 @@ app.post('/mcp', async (req, res) => {
       });
     }
 
-    // For requests (not notifications), id must be present
-    // If id is missing, generate one or use a default
     const requestId = id !== undefined ? id : 'default';
 
     let result;
 
     if (method === 'initialize') {
-      // MCP initialization handshake
       result = {
         protocolVersion: '2024-11-05',
         capabilities: {
@@ -378,7 +411,8 @@ app.post('/mcp', async (req, res) => {
           },
           {
             name: 'get_merge_requests_by_user',
-            description: 'Fetch all merge requests for a given username. Supports filtering by project and state.',
+            description:
+              'Fetch all merge requests for a given username. Supports filtering by project and state.',
             inputSchema: {
               type: 'object',
               properties: {
@@ -388,7 +422,8 @@ app.post('/mcp', async (req, res) => {
                 },
                 projectPath: {
                   type: 'string',
-                  description: 'Optional: Filter by project path (e.g., "group/project"). If not provided, returns MRs from all accessible projects.',
+                  description:
+                    'Optional: Filter by project path (e.g., "group/project"). If not provided, returns MRs from all accessible projects.',
                 },
                 state: {
                   type: 'string',
@@ -397,6 +432,59 @@ app.post('/mcp', async (req, res) => {
                 },
               },
               required: ['username'],
+            },
+          },
+          {
+            name: 'create_merge_request',
+            description: 'Create a new merge request. Requires api scope in token.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                projectPath: {
+                  type: 'string',
+                  description: 'Full project path (e.g., "group/project")',
+                },
+                sourceBranch: {
+                  type: 'string',
+                  description: 'Source branch to merge from',
+                },
+                targetBranch: {
+                  type: 'string',
+                  description: 'Target branch to merge into',
+                },
+                title: {
+                  type: 'string',
+                  description: 'Merge request title',
+                },
+                description: {
+                  type: 'string',
+                  description: 'Optional: Merge request description',
+                },
+                assigneeIds: {
+                  type: 'array',
+                  items: { type: 'number' },
+                  description: 'Optional: Array of user IDs to assign',
+                },
+                reviewerIds: {
+                  type: 'array',
+                  items: { type: 'number' },
+                  description: 'Optional: Array of user IDs to request review from',
+                },
+                labels: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'Optional: Array of label names',
+                },
+                removeSourceBranch: {
+                  type: 'boolean',
+                  description: 'Optional: Remove source branch when MR is merged',
+                },
+                squash: {
+                  type: 'boolean',
+                  description: 'Optional: Squash commits when merging',
+                },
+              },
+              required: ['projectPath', 'sourceBranch', 'targetBranch', 'title'],
             },
           },
         ],
@@ -432,8 +520,6 @@ app.post('/mcp', async (req, res) => {
         throw new Error(`Unknown resource: ${uri}`);
       }
     } else if (method === 'notifications/initialized') {
-      // MCP initialization notification - sent after initialize to confirm client is ready
-      // Even though it's a notification, if it has an id, we should respond
       result = {};
     } else {
       return res.status(400).json({
@@ -479,7 +565,6 @@ app.post('/mcp', async (req, res) => {
   }
 });
 
-// REST API endpoints for easier direct access
 app.get('/api/tools', (_req, res) => {
   res.json({
     tools: [
@@ -489,6 +574,7 @@ app.get('/api/tools', (_req, res) => {
       'get_merge_request_diffs',
       'get_merge_request_approvals',
       'get_merge_requests_by_user',
+      'create_merge_request',
       'health_check',
     ],
   });
@@ -515,7 +601,6 @@ app.post('/api/tools/:toolName', async (req, res) => {
   }
 });
 
-// SSE endpoint for streaming (optional, for real-time updates)
 app.get('/mcp/sse', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -529,10 +614,8 @@ app.get('/mcp/sse', (req, res) => {
   });
 });
 
-// Start server
 async function main() {
   try {
-    // Validate config on startup
     loadConfig();
     logger.info('Configuration loaded successfully');
 

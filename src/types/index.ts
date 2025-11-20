@@ -1,7 +1,3 @@
-/**
- * TypeScript interfaces for GitLab entities
- */
-
 export interface Project {
   id: string;
   fullPath: string;
@@ -105,9 +101,6 @@ export interface MergeRequest {
   discussions?: Discussion[];
 }
 
-/**
- * Normalized final output shape for UI consumption
- */
 export interface MergeRequestView {
   id: string;
   iid: string;

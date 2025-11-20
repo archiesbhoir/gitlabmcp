@@ -1,11 +1,6 @@
-/**
- * Configuration loader from environment variables
- */
 import dotenv from 'dotenv';
 import { existsSync } from 'fs';
 
-// Only load .env file if it exists (for local development)
-// In Docker, environment variables are passed directly, so .env file won't exist
 if (existsSync('.env')) {
   dotenv.config();
 }
@@ -27,7 +22,6 @@ export function loadConfig(): Config {
     throw new Error('GITLAB_TOKEN environment variable is required');
   }
 
-  // Ensure base URL doesn't end with a slash
   const normalizedUrl = gitlabBaseUrl.replace(/\/$/, '');
 
   return {

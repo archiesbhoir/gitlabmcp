@@ -1,8 +1,3 @@
-/**
- * End-to-end tests with real GitLab API
- * These tests require GITLAB_BASE_URL and GITLAB_TOKEN to be set
- * Skip if not available (useful for CI environments)
- */
 import { describe, it, expect, beforeAll } from 'vitest';
 import { healthCheck } from '../health.js';
 import { getMergeRequestView } from '../mergeRequestView.js';
@@ -10,7 +5,6 @@ import { getMergeRequest } from '../mergeRequest.js';
 import { fetchAllCommits, fetchAllDiscussions } from '../pagination.js';
 import { loadConfig } from '../../utils/config.js';
 
-// Skip e2e tests if credentials are not available
 const shouldSkipE2E =
   !process.env.GITLAB_BASE_URL ||
   !process.env.GITLAB_TOKEN ||
@@ -23,8 +17,7 @@ describe.skipIf(shouldSkipE2E)('E2E Tests - Real GitLab API', () => {
 
   beforeAll(() => {
     try {
-      loadConfig(); // Validate config is available
-      // Require these to be set for e2e tests
+      loadConfig();
       testProjectPath = process.env.E2E_TEST_PROJECT_PATH!;
       testMRIid = process.env.E2E_TEST_MR_IID!;
 
@@ -110,12 +103,10 @@ describe.skipIf(shouldSkipE2E)('E2E Tests - Real GitLab API', () => {
   }, 30000); // 30 second timeout
 
   it('should handle cache correctly', async () => {
-    // First fetch - should hit API
     const view1 = await getMergeRequestView(testProjectPath, testMRIid, {
       forceRefresh: true,
     });
 
-    // Second fetch - should hit cache
     const view2 = await getMergeRequestView(testProjectPath, testMRIid, {
       forceRefresh: false,
     });

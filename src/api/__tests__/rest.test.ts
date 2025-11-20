@@ -1,11 +1,7 @@
-/**
- * Unit tests for REST client
- */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { restRequest, restPaginate } from '../rest.js';
 import { GitLabErrorCode } from '../../utils/errors.js';
 
-// Mock fetch
 global.fetch = vi.fn();
 
 describe('restRequest', () => {
@@ -66,14 +62,12 @@ describe('restPaginate', () => {
   });
 
   it('should paginate through all results', async () => {
-    // First page
     (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       status: 200,
       json: async () => [{ id: 1 }, { id: 2 }],
     });
 
-    // Second page (empty, signals end)
     (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -87,14 +81,12 @@ describe('restPaginate', () => {
   });
 
   it('should handle multiple pages', async () => {
-    // First page (full page)
     (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       status: 200,
       json: async () => Array.from({ length: 100 }, (_, i) => ({ id: i + 1 })),
     });
 
-    // Second page (partial, signals end)
     (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       status: 200,

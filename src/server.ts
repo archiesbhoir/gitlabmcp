@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-/**
- * MCP Server for GitLab Merge Request Viewer
- */
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -18,6 +15,7 @@ import {
   getMRChangesRest,
   getMRApprovalsRest,
   getMRsByUsername,
+  createMergeRequest,
 } from './api/index.js';
 import { getLogger } from './utils/logger.js';
 import { GitLabError } from './utils/errors.js';
@@ -46,7 +44,6 @@ class GitLabMCPServer {
   }
 
   private setupHandlers(): void {
-    // List available tools
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
         {
@@ -175,7 +172,8 @@ class GitLabMCPServer {
         },
         {
           name: 'get_merge_requests_by_user',
-          description: 'Fetch all merge requests for a given username. Supports filtering by project and state.',
+          description:
+            'Fetch all merge requests for a given username. Supports filtering by project and state.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -185,7 +183,8 @@ class GitLabMCPServer {
               },
               projectPath: {
                 type: 'string',
-                description: 'Optional: Filter by project path (e.g., "group/project"). If not provided, returns MRs from all accessible projects.',
+                description:
+                  'Optional: Filter by project path (e.g., "group/project"). If not provided, returns MRs from all accessible projects.',
               },
               state: {
                 type: 'string',
@@ -196,10 +195,62 @@ class GitLabMCPServer {
             required: ['username'],
           },
         },
+        {
+          name: 'create_merge_request',
+          description: 'Create a new merge request. Requires api scope in token.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectPath: {
+                type: 'string',
+                description: 'Full project path (e.g., "group/project")',
+              },
+              sourceBranch: {
+                type: 'string',
+                description: 'Source branch to merge from',
+              },
+              targetBranch: {
+                type: 'string',
+                description: 'Target branch to merge into',
+              },
+              title: {
+                type: 'string',
+                description: 'Merge request title',
+              },
+              description: {
+                type: 'string',
+                description: 'Optional: Merge request description',
+              },
+              assigneeIds: {
+                type: 'array',
+                items: { type: 'number' },
+                description: 'Optional: Array of user IDs to assign',
+              },
+              reviewerIds: {
+                type: 'array',
+                items: { type: 'number' },
+                description: 'Optional: Array of user IDs to request review from',
+              },
+              labels: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Optional: Array of label names',
+              },
+              removeSourceBranch: {
+                type: 'boolean',
+                description: 'Optional: Remove source branch when MR is merged',
+              },
+              squash: {
+                type: 'boolean',
+                description: 'Optional: Squash commits when merging',
+              },
+            },
+            required: ['projectPath', 'sourceBranch', 'targetBranch', 'title'],
+          },
+        },
       ],
     }));
 
-    // List available resources
     this.server.setRequestHandler(ListResourcesRequestSchema, async () => ({
       resources: [
         {
@@ -211,7 +262,6 @@ class GitLabMCPServer {
       ],
     }));
 
-    // Read resource
     this.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       if (request.params.uri === 'gitlab://health') {
         const health = await healthCheck();
@@ -228,7 +278,6 @@ class GitLabMCPServer {
       throw new Error(`Unknown resource: ${request.params.uri}`);
     });
 
-    // Handle tool calls
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
 
@@ -261,7 +310,6 @@ class GitLabMCPServer {
               forceRefresh,
             });
 
-            // Fetch additional data if requested
             if (includeDiffs) {
               try {
                 const changes = await getMRChangesRest(projectPath, iid);
@@ -368,11 +416,7 @@ class GitLabMCPServer {
           }
 
           case 'get_merge_requests_by_user': {
-            const {
-              username,
-              projectPath,
-              state,
-            } = args as {
+            const { username, projectPath, state } = args as {
               username: string;
               projectPath?: string;
               state?: 'opened' | 'closed' | 'locked' | 'merged';
@@ -390,6 +434,60 @@ class GitLabMCPServer {
                 {
                   type: 'text',
                   text: JSON.stringify(mrs, null, 2),
+                },
+              ],
+            };
+          }
+
+          case 'create_merge_request': {
+            const {
+              projectPath,
+              sourceBranch,
+              targetBranch,
+              title,
+              description,
+              assigneeIds,
+              reviewerIds,
+              labels,
+              removeSourceBranch,
+              squash,
+            } = args as {
+              projectPath: string;
+              sourceBranch: string;
+              targetBranch: string;
+              title: string;
+              description?: string;
+              assigneeIds?: number[];
+              reviewerIds?: number[];
+              labels?: string[];
+              removeSourceBranch?: boolean;
+              squash?: boolean;
+            };
+
+            logger.info('Creating merge request', {
+              projectPath,
+              sourceBranch,
+              targetBranch,
+              title,
+            });
+
+            const mr = await createMergeRequest(projectPath, {
+              sourceBranch,
+              targetBranch,
+              title,
+              description,
+              assigneeIds,
+              reviewerIds,
+              labels,
+              removeSourceBranch,
+              squash,
+            });
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(mr, null, 2),
                 },
               ],
             };
@@ -449,7 +547,6 @@ class GitLabMCPServer {
   }
 }
 
-// Start the server
 const server = new GitLabMCPServer();
 server.run().catch((error) => {
   logger.error('Failed to start server', { error: error.message });

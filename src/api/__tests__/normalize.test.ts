@@ -1,6 +1,3 @@
-/**
- * Unit tests for normalization layer
- */
 import { describe, it, expect } from 'vitest';
 import { normalizeMR } from '../normalize.js';
 import { MRQueryResponse } from '../../queries/mergeRequest.js';

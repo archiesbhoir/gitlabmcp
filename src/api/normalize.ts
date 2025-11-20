@@ -1,6 +1,3 @@
-/**
- * Normalization layer to convert GraphQL/REST data into MergeRequestView
- */
 import { MRQueryResponse } from '../queries/mergeRequest.js';
 import {
   MergeRequestView,
@@ -13,9 +10,6 @@ import {
   Note,
 } from '../types/index.js';
 
-/**
- * Normalize GraphQL response into MergeRequestView
- */
 export function normalizeMR(data: MRQueryResponse): MergeRequestView {
   if (!data.project?.mergeRequest) {
     throw new Error('Invalid MR data: project or mergeRequest is null');
@@ -23,7 +17,6 @@ export function normalizeMR(data: MRQueryResponse): MergeRequestView {
 
   const mr = data.project.mergeRequest;
 
-  // Normalize user
   const normalizeUser = (user: {
     id: string;
     username: string;
@@ -38,7 +31,6 @@ export function normalizeMR(data: MRQueryResponse): MergeRequestView {
     webUrl: user.webUrl,
   });
 
-  // Normalize commits
   const commits: Commit[] = mr.commits.nodes.map((node) => ({
     id: node.id,
     sha: node.sha,
@@ -51,7 +43,6 @@ export function normalizeMR(data: MRQueryResponse): MergeRequestView {
     webUrl: node.webUrl,
   }));
 
-  // Normalize pipelines (webUrl not available in GraphQL, will be empty)
   const pipelines: Pipeline[] = mr.pipelines.nodes.map((node) => ({
     id: node.id,
     status: node.status,
@@ -63,18 +54,15 @@ export function normalizeMR(data: MRQueryResponse): MergeRequestView {
     duration: node.duration || undefined,
   }));
 
-  // Normalize approvals (only approved boolean available in GraphQL, rest needs REST fallback)
   const approvals: ApprovalInfo = {
     approved: mr.approved,
-    approvedBy: [], // Not available in GraphQL, will need REST fallback
-    approvalsRequired: 0, // Not available in GraphQL, will need REST fallback
-    approvalsLeft: 0, // Not available in GraphQL, will need REST fallback
+    approvedBy: [],
+    approvalsRequired: 0,
+    approvalsLeft: 0,
   };
 
-  // Diffs not available in GraphQL, will need REST fallback
   const diffs: Diff[] = [];
 
-  // Normalize discussions
   const discussions: Discussion[] = mr.discussions.nodes.map((node) => ({
     id: node.id,
     resolved: node.resolved,
@@ -100,7 +88,6 @@ export function normalizeMR(data: MRQueryResponse): MergeRequestView {
     ),
   }));
 
-  // Build final normalized view
   const view: MergeRequestView = {
     id: mr.id,
     iid: mr.iid,
@@ -117,7 +104,7 @@ export function normalizeMR(data: MRQueryResponse): MergeRequestView {
     createdAt: mr.createdAt,
     updatedAt: mr.updatedAt,
     mergedAt: mr.mergedAt || undefined,
-    changesCount: undefined, // Not available in GraphQL, will need REST fallback
+    changesCount: undefined,
     commits,
     pipelines,
     approvals,

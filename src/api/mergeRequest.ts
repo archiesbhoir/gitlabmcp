@@ -1,6 +1,3 @@
-/**
- * Merge Request API client
- */
 import { graphqlRequest, GraphQLRequestOptions } from './graphql.js';
 import { MR_FULL_QUERY, MRQueryVariables, MRQueryResponse } from '../queries/mergeRequest.js';
 import { GitLabErrorCode, createGitLabError } from '../utils/errors.js';
@@ -12,9 +9,6 @@ export interface GetMergeRequestOptions extends GraphQLRequestOptions {
   discussionsAfter?: string;
 }
 
-/**
- * Fetch a merge request using GraphQL
- */
 export async function getMergeRequest(
   fullPath: string,
   iid: string,
@@ -57,12 +51,10 @@ export async function getMergeRequest(
 
     return data;
   } catch (error) {
-    // Re-throw GitLab errors as-is
     if (error instanceof Error && 'code' in error) {
       throw error;
     }
 
-    // Wrap unknown errors
     throw createGitLabError(
       GitLabErrorCode.GITLAB_UNKNOWN_ERR,
       `Failed to fetch merge request: ${error instanceof Error ? error.message : 'Unknown error'}`

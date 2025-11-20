@@ -1,11 +1,21 @@
 {
-  "name": "gitlab-mcp",
+  "name": "@archiesbhoir/gitlabmcp",
   "version": "0.1.0",
   "description": "GitLab Merge Request Viewer via MCP",
   "main": "dist/index.js",
+  "bin": {
+    "gitlabmcp": "./dist/server.js",
+    "gitlabmcp-http": "./dist/server-http.js"
+  },
   "type": "module",
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "dev": "tsc --watch",
     "start": "node dist/server.js",
     "start:http": "node dist/server-http.js",
