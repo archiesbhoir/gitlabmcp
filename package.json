@@ -1,11 +1,11 @@
 {
-  "name": "@archiesbhoir/gitlabmcp",
+  "name": "@archisbhoir/gitlabmcp",
   "version": "0.1.0",
   "description": "GitLab Merge Request Viewer via MCP",
   "main": "dist/index.js",
   "bin": {
-    "gitlabmcp": "./dist/server.js",
-    "gitlabmcp-http": "./dist/server-http.js"
+    "gitlabmcp": "dist/server.js",
+    "gitlabmcp-http": "dist/server-http.js"
   },
   "type": "module",
   "files": [
