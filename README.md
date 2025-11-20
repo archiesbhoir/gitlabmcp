@@ -1,25 +1,10 @@
 # GitLab Merge Request Viewer via MCP
 
-A comprehensive GitLab Merge Request viewer that fetches MR data (commits, pipelines, approvals, diffs, discussions) using GitLab GraphQL + REST APIs, similar to IntelliJ's MR viewer.
-
-## Features
-
-✅ **GraphQL API Integration** - Primary data fetching via GitLab GraphQL API  
-✅ **REST API Fallbacks** - Fallback to REST API when needed  
-✅ **Pagination Support** - Cursor-based pagination for commits and discussions  
-✅ **Caching** - LRU cache with configurable TTL (30s for MR, 2min for diffs)  
-✅ **Real-time Updates** - Cache-based updates with force refresh option  
-✅ **Error Handling** - Standardized errors with retry logic and rate limit handling  
-✅ **Observability** - JSON logging for requests, cache hits, and errors  
-✅ **TypeScript** - Full type safety with comprehensive interfaces  
-✅ **Testing** - Unit tests with Vitest  
-✅ **Dual Transport** - Supports both stdio (MCP clients) and HTTP (REST API) servers
+A GitLab Merge Request viewer that fetches MR data (commits, pipelines, approvals, diffs, discussions) using GitLab GraphQL + REST APIs.
 
 ## Quick Start
 
-### Using npx (Recommended)
-
-Run directly without installation:
+### Using npx
 
 ```bash
 # Stdio server (for MCP clients like Claude Desktop)
@@ -30,6 +15,7 @@ npx -p @archisbhoir/gitlabmcp@latest node dist/server-http.js
 ```
 
 Set environment variables:
+
 ```bash
 export GITLAB_BASE_URL=https://gitlab.example.com
 export GITLAB_TOKEN=your_token_here
@@ -47,60 +33,20 @@ gitlabmcp
 gitlabmcp-http
 ```
 
-### Local Development Setup
+## Configuration
 
-1. Clone and install dependencies:
-
-```bash
-git clone https://github.com/archisbhoir/gitlabmcp.git
-cd gitlabmcp
-npm install
-```
-
-2. Create `.env` file with your GitLab credentials:
+Create `.env` file or set environment variables:
 
 ```bash
 GITLAB_BASE_URL=https://gitlab.example.com
 GITLAB_TOKEN=your_token_here
 ```
 
-**Note:** Your token needs `read_api` or `api` scope to access merge requests.
+**Note:** Token needs `read_api` or `api` scope to access merge requests.
 
-3. Build the project:
+## MCP Client Configuration
 
-```bash
-npm run build
-```
-
-## Running the MCP Server
-
-The package provides two server modes:
-
-### 1. Stdio Server (Default - for MCP Clients)
-
-The stdio server communicates via stdin/stdout, ideal for MCP clients like Claude Desktop.
-
-**Run with npx:**
-```bash
-npx @archisbhoir/gitlabmcp@latest
-```
-
-**Run after global install:**
-```bash
-gitlabmcp
-```
-
-**Run locally:**
-```bash
-npm run build
-npm start
-# or
-node dist/server.js
-```
-
-**MCP Client Configuration (Stdio):**
-
-For stdio-based MCP clients (like Claude Desktop):
+### Stdio (Claude Desktop)
 
 ```json
 {
@@ -117,56 +63,7 @@ For stdio-based MCP clients (like Claude Desktop):
 }
 ```
 
-Or if installed globally:
-
-```json
-{
-  "mcpServers": {
-    "gitlab-mcp": {
-      "command": "gitlabmcp",
-      "env": {
-        "GITLAB_BASE_URL": "https://gitlab.example.com",
-        "GITLAB_TOKEN": "your_token_here"
-      }
-    }
-  }
-}
-```
-
-### 2. HTTP Server (for REST API & Multi-Client Access)
-
-The HTTP server allows multiple clients to connect simultaneously via HTTP/SSE and provides REST API endpoints.
-
-**Run with npx:**
-```bash
-npx -p @archisbhoir/gitlabmcp@latest node dist/server-http.js
-```
-
-**Run after global install:**
-```bash
-gitlabmcp-http
-```
-
-**Run locally:**
-```bash
-npm run build
-npm run start:http
-# or
-node dist/server-http.js
-```
-
-The server starts on `http://localhost:8080` by default (configurable via `PORT` env var).
-
-**Endpoints:**
-- `GET /health` - Health check endpoint
-- `POST /mcp` - MCP protocol endpoint (JSON-RPC 2.0)
-- `GET /api/tools` - List available tools
-- `POST /api/tools/:toolName` - Call a tool via REST API
-- `GET /mcp/sse` - Server-Sent Events endpoint for streaming
-
-**MCP Client Configuration (HTTP):**
-
-For HTTP-based MCP clients:
+### HTTP
 
 ```json
 {
@@ -179,33 +76,7 @@ For HTTP-based MCP clients:
 }
 ```
 
-**REST API Usage:**
-
-```bash
-# List available tools
-curl http://localhost:8080/api/tools
-
-# Call a tool
-curl -X POST http://localhost:8080/api/tools/get_merge_request \
-  -H "Content-Type: application/json" \
-  -d '{"projectPath": "group/project", "iid": "123"}'
-```
-
-Both servers automatically load environment variables from `.env` file if present.
-
-## Development
-
-- `npm run build` - Build TypeScript to `dist/`
-- `npm run dev` - Watch mode for development
-- `npm test` - Run tests
-- `npm test -- --watch` - Run tests in watch mode
-- `npm run lint` - Lint code
-- `npm run format` - Format code with Prettier
-- `npm run typecheck` - Type check without building
-
 ## MCP Tools
-
-The server exposes the following tools that can be called by MCP clients:
 
 ### `get_merge_request`
 
@@ -217,77 +88,55 @@ Fetch a complete merge request with all data.
 - `iid` (required): Merge request IID (e.g., `"123"`)
 - `includeCommits` (optional): Include commits (default: `true`)
 - `includeDiscussions` (optional): Include discussions (default: `true`)
-- `includeDiffs` (optional): Include diffs/changes via REST API (default: `false`)
-- `includeApprovals` (optional): Include full approval details via REST API (default: `false`)
+- `includeDiffs` (optional): Include diffs/changes (default: `false`)
+- `includeApprovals` (optional): Include approval details (default: `false`)
 - `forceRefresh` (optional): Bypass cache (default: `false`)
-
-**Returns:** Complete `MergeRequestView` object with commits, pipelines, approvals, diffs, and discussions.
 
 ### `get_merge_request_commits`
 
-Fetch all commits for a merge request with automatic pagination.
+Fetch all commits for a merge request.
 
 **Parameters:**
 
 - `projectPath` (required): Full project path
 - `iid` (required): Merge request IID
-
-**Returns:** Array of commit objects.
 
 ### `get_merge_request_discussions`
 
-Fetch all discussions for a merge request with automatic pagination.
+Fetch all discussions for a merge request.
 
 **Parameters:**
 
 - `projectPath` (required): Full project path
 - `iid` (required): Merge request IID
-
-**Returns:** Array of discussion objects with notes.
 
 ### `get_merge_request_diffs`
 
-Fetch diffs/changes for a merge request using REST API.
+Fetch diffs/changes for a merge request.
 
 **Parameters:**
 
 - `projectPath` (required): Full project path
 - `iid` (required): Merge request IID
-
-**Returns:** Changes object with diff data.
 
 ### `get_merge_request_approvals`
 
-Fetch approval details for a merge request using REST API.
+Fetch approval details for a merge request.
 
 **Parameters:**
 
 - `projectPath` (required): Full project path
 - `iid` (required): Merge request IID
 
-**Returns:** Approval information with approvers and requirements.
-
 ### `get_merge_requests_by_user`
 
-Fetch all merge requests for a given username. Supports filtering by project and state.
+Fetch all merge requests for a username.
 
 **Parameters:**
 
-- `username` (required): GitLab username to fetch merge requests for
-- `projectPath` (optional): Filter by project path (e.g., `"group/project"`). If not provided, returns MRs from all accessible projects.
-- `state` (optional): Filter by merge request state (`"opened"`, `"closed"`, `"locked"`, `"merged"`)
-
-**Returns:** Array of `MergeRequest` objects with basic information (title, state, author, assignees, labels, etc.).
-
-**Example:**
-
-```json
-{
-  "username": "johndoe",
-  "projectPath": "mygroup/myproject",
-  "state": "opened"
-}
-```
+- `username` (required): GitLab username
+- `projectPath` (optional): Filter by project path
+- `state` (optional): Filter by state (`"opened"`, `"closed"`, `"locked"`, `"merged"`)
 
 ### `create_merge_request`
 
@@ -295,233 +144,66 @@ Create a new merge request. Requires `api` scope in token.
 
 **Parameters:**
 
-- `projectPath` (required): Full project path (e.g., `"group/project"`)
-- `sourceBranch` (required): Source branch to merge from
-- `targetBranch` (required): Target branch to merge into
+- `projectPath` (required): Full project path
+- `sourceBranch` (required): Source branch
+- `targetBranch` (required): Target branch
 - `title` (required): Merge request title
-- `description` (optional): Merge request description
-- `assigneeIds` (optional): Array of user IDs to assign
-- `reviewerIds` (optional): Array of user IDs to request review from
+- `description` (optional): Description
+- `assigneeIds` (optional): Array of user IDs
+- `reviewerIds` (optional): Array of user IDs
 - `labels` (optional): Array of label names
-- `removeSourceBranch` (optional): Remove source branch when MR is merged
+- `removeSourceBranch` (optional): Remove source branch when merged
 - `squash` (optional): Squash commits when merging
-
-**Returns:** Created `MergeRequest` object with full details.
-
-**Example:**
-
-```json
-{
-  "projectPath": "mygroup/myproject",
-  "sourceBranch": "feature-branch",
-  "targetBranch": "main",
-  "title": "Add new feature",
-  "description": "This MR adds a new feature",
-  "labels": ["feature", "enhancement"],
-  "removeSourceBranch": true
-}
-```
-
-**Note:** Your GitLab token must have `api` scope (not just `read_api`) to create merge requests.
 
 ### `health_check`
 
 Check GitLab connectivity and version.
 
-**Parameters:** None
+## HTTP Server Endpoints
 
-**Returns:** Health status with version and reachability.
+When running the HTTP server (`gitlabmcp-http`):
 
-## MCP Resources
+- `GET /health` - Health check
+- `POST /mcp` - MCP protocol endpoint
+- `GET /api/tools` - List available tools
+- `POST /api/tools/:toolName` - Call a tool via REST API
 
-### `gitlab://health`
-
-Resource URI that returns GitLab health status as JSON.
-
-## Library Usage (Direct API)
-
-You can also use the library directly in your code:
-
-### Installation
+## Library Usage
 
 ```bash
 npm install @archisbhoir/gitlabmcp
 ```
 
-### With Pagination
-
 ```typescript
-import { fetchAllCommits, fetchAllDiscussions } from '@archisbhoir/gitlabmcp';
+import {
+  getMergeRequestView,
+  fetchAllCommits,
+  fetchAllDiscussions,
+  getMRChangesRest,
+  getMRApprovalsRest,
+} from '@archisbhoir/gitlabmcp';
 
-// Fetch all commits (handles pagination automatically)
-const allCommits = await fetchAllCommits('group/project', '123');
+// Get complete MR view
+const view = await getMergeRequestView('group/project', '123');
+
+// Fetch all commits
+const commits = await fetchAllCommits('group/project', '123');
 
 // Fetch all discussions
-const allDiscussions = await fetchAllDiscussions('group/project', '123');
-```
+const discussions = await fetchAllDiscussions('group/project', '123');
 
-### REST Fallbacks
-
-```typescript
-import { getMRChangesRest, getMRApprovalsRest } from '@archisbhoir/gitlabmcp';
-
-// Use REST API directly for diffs and approvals
+// Get diffs and approvals via REST
 const changes = await getMRChangesRest('group/project', '123');
 const approvals = await getMRApprovalsRest('group/project', '123');
 ```
 
-## Project Structure
-
-```
-src/
-  api/
-    graphql.ts           # GraphQL client with retry logic
-    rest.ts              # REST client with pagination
-    mergeRequest.ts      # GraphQL-based MR fetcher
-    mergeRequestRest.ts  # REST-based MR fetchers (diffs, approvals)
-    mergeRequestView.ts  # High-level API with caching
-    normalize.ts         # Data normalization layer
-    pagination.ts        # Pagination helpers
-    health.ts            # Health check
-  types/
-    index.ts             # TypeScript interfaces
-  queries/
-    mergeRequest.ts      # GraphQL queries and types
-  utils/
-    config.ts            # Configuration loader
-    errors.ts            # Error types and helpers
-    cache.ts             # LRU cache implementation
-    logger.ts            # JSON logger
-  server.ts              # Stdio MCP server
-  server-http.ts         # HTTP MCP server
-  index.ts               # Main library exports
-  __tests__/             # Unit tests
-```
-
-## API Reference
-
-### Core Functions
-
-- `healthCheck()` - Check GitLab connectivity and version
-- `getMergeRequestView(fullPath, iid, options?)` - Get normalized MR view with caching
-- `getMergeRequest(fullPath, iid, options?)` - Get raw GraphQL MR data
-
-### Pagination
-
-- `fetchMoreCommits(fullPath, iid, cursor, options?)` - Fetch next page of commits
-- `fetchMoreDiscussions(fullPath, iid, cursor, options?)` - Fetch next page of discussions
-- `fetchAllCommits(fullPath, iid, options?)` - Fetch all commits (auto-paginate)
-- `fetchAllDiscussions(fullPath, iid, options?)` - Fetch all discussions (auto-paginate)
-
-### REST API
-
-- `getMRChangesRest(projectId, iid, options?)` - Get changes/diffs via REST
-- `getMRApprovalsRest(projectId, iid, options?)` - Get approvals via REST
-- `getMRsByUsername(username, options?)` - Get all merge requests for a username via REST
-- `createMergeRequest(projectPath, options)` - Create a new merge request via REST (requires api scope)
-
-## Error Handling
-
-The library uses standardized error codes:
-
-- `GITLAB_NET_ERR` - Network errors
-- `GITLAB_AUTH_ERR` - Authentication failures (401/403)
-- `GITLAB_RATE_LIMIT` - Rate limit exceeded (429)
-- `GITLAB_NOT_FOUND` - Resource not found (404)
-- `GITLAB_GRAPHQL_ERR` - GraphQL errors
-- `GITLAB_UNKNOWN_ERR` - Other errors
-
-All errors include retry logic with exponential backoff and jitter, except for auth and not-found errors.
-
-## Caching
-
-The library includes an LRU cache with configurable TTL:
-
-- Default MR cache: 30 seconds
-- Default diffs cache: 2 minutes
-- Configurable via `getDefaultCache(options)`
-
-Use `forceRefresh: true` in options to bypass cache.
-
-## Logging
-
-The library uses JSON logging. Set log level via environment variable or programmatically:
-
-```typescript
-import { getLogger, LogLevel } from './src/index.js';
-
-const logger = getLogger(LogLevel.DEBUG);
-```
-
-## Testing
-
-### Unit Tests
-
-Run unit tests (mocked API):
+## Development
 
 ```bash
+npm install
+npm run build
 npm test
-# or
-npm run test:unit
 ```
-
-### End-to-End Tests
-
-Run end-to-end tests against real GitLab API:
-
-```bash
-npm run test:e2e
-```
-
-**Requirements for E2E tests:**
-
-- `GITLAB_BASE_URL` and `GITLAB_TOKEN` must be set in your environment
-- `E2E_TEST_PROJECT_PATH` and `E2E_TEST_MR_IID` are **required** to test specific MRs
-- E2E tests are automatically skipped if any required variables are not available
-
-**Example:**
-
-```bash
-export GITLAB_BASE_URL=https://gitlab.example.com
-export GITLAB_TOKEN=your_token_here
-export E2E_TEST_PROJECT_PATH=your-group/your-project
-export E2E_TEST_MR_IID=123
-npm run test:e2e
-```
-
-**Note:** Replace `https://gitlab.example.com` with your GitLab instance URL, `your-group/your-project` with an actual project path, and `123` with a real merge request IID.
-
-### Coverage
-
-Generate coverage reports:
-
-```bash
-npm test -- --coverage
-```
-
-## Publishing
-
-This package is published to npm as `@archisbhoir/gitlabmcp`. To publish updates:
-
-1. Update version:
-   ```bash
-   npm version patch  # 0.1.0 -> 0.1.1
-   npm version minor  # 0.1.0 -> 0.2.0
-   npm version major  # 0.1.0 -> 1.0.0
-   ```
-
-2. Build and publish:
-   ```bash
-   npm run build
-   npm publish --access public
-   ```
-
-3. Push version tag:
-   ```bash
-   git push --tags
-   ```
-
-The `prepublishOnly` script automatically builds the project before publishing.
 
 ## License
 
