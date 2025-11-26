@@ -16,6 +16,9 @@ import {
   getMRApprovalsRest,
   getMRsByUsername,
   createMergeRequest,
+  getMRPipelines,
+  getPipeline,
+  getPipelineJobs,
 } from './api/index.js';
 import { getLogger } from './utils/logger.js';
 import { GitLabError } from './utils/errors.js';
@@ -29,7 +32,7 @@ class GitLabMCPServer {
     this.server = new Server(
       {
         name: 'gitlab-mcp',
-        version: '0.1.0',
+        version: '1.1.0',
       },
       {
         capabilities: {
@@ -160,6 +163,65 @@ class GitLabMCPServer {
               },
             },
             required: ['projectPath', 'iid'],
+          },
+        },
+        {
+          name: 'get_merge_request_pipelines',
+          description: 'Fetch all pipelines associated with a merge request using REST API.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectPath: {
+                type: 'string',
+                description: 'Full project path (e.g., "group/project")',
+              },
+              iid: {
+                type: 'string',
+                description: 'Merge request IID',
+              },
+            },
+            required: ['projectPath', 'iid'],
+          },
+        },
+        {
+          name: 'get_pipeline',
+          description: 'Fetch a single pipeline by ID for a given project.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectPath: {
+                type: 'string',
+                description: 'Full project path (e.g., "group/project")',
+              },
+              pipelineId: {
+                type: 'string',
+                description: 'Pipeline ID from GitLab',
+              },
+            },
+            required: ['projectPath', 'pipelineId'],
+          },
+        },
+        {
+          name: 'get_pipeline_jobs',
+          description: 'Fetch all jobs for a pipeline.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectPath: {
+                type: 'string',
+                description: 'Full project path (e.g., "group/project")',
+              },
+              pipelineId: {
+                type: 'string',
+                description: 'Pipeline ID from GitLab',
+              },
+              scope: {
+                type: 'string',
+                enum: ['created', 'pending', 'running', 'failed', 'success', 'canceled', 'skipped', 'manual'],
+                description: 'Optional: Filter jobs by scope/status',
+              },
+            },
+            required: ['projectPath', 'pipelineId'],
           },
         },
         {
@@ -397,6 +459,63 @@ class GitLabMCPServer {
                 {
                   type: 'text',
                   text: JSON.stringify(approvals, null, 2),
+                },
+              ],
+            };
+          }
+
+          case 'get_merge_request_pipelines': {
+            const { projectPath, iid } = args as { projectPath: string; iid: string };
+            logger.info('Fetching pipelines for merge request', { projectPath, iid });
+
+            const pipelines = await getMRPipelines(projectPath, iid);
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(pipelines, null, 2),
+                },
+              ],
+            };
+          }
+
+          case 'get_pipeline': {
+            const { projectPath, pipelineId } = args as { projectPath: string; pipelineId: string };
+            logger.info('Fetching pipeline', { projectPath, pipelineId });
+
+            const pipeline = await getPipeline(projectPath, pipelineId);
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(pipeline, null, 2),
+                },
+              ],
+            };
+          }
+
+          case 'get_pipeline_jobs': {
+            const { projectPath, pipelineId, scope } = args as {
+              projectPath: string;
+              pipelineId: string;
+              scope?:
+                | 'created'
+                | 'pending'
+                | 'running'
+                | 'failed'
+                | 'success'
+                | 'canceled'
+                | 'skipped'
+                | 'manual';
+            };
+            logger.info('Fetching pipeline jobs', { projectPath, pipelineId, scope });
+
+            const jobs = await getPipelineJobs(projectPath, pipelineId, { scope });
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(jobs, null, 2),
                 },
               ],
             };

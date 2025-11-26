@@ -6,3 +6,4 @@ export * from './mergeRequestRest.js';
 export * from './pagination.js';
 export * from './normalize.js';
 export * from './mergeRequestView.js';
+export * from './pipelines.js';

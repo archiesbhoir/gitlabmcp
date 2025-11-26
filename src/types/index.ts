@@ -25,6 +25,15 @@ export interface Commit {
   webUrl: string;
 }
 
+export interface PipelineDetailedStatus {
+  group?: string;
+  label?: string;
+  tooltip?: string;
+  icon?: string;
+  hasDetails?: boolean;
+  detailsPath?: string;
+}
+
 export interface Pipeline {
   id: string;
   status: string;
@@ -34,6 +43,31 @@ export interface Pipeline {
   createdAt: string;
   updatedAt: string;
   duration?: number;
+  coverage?: string;
+  source?: string;
+  detailedStatus?: PipelineDetailedStatus;
+}
+
+export interface Job {
+  id: string;
+  name: string;
+  stage: string;
+  status: string;
+  allowFailure?: boolean;
+  webUrl: string;
+  createdAt?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  duration?: number;
+  coverage?: string;
+  artifacts?: {
+    filename: string;
+    size?: number;
+  };
+  runner?: {
+    id: string;
+    description?: string;
+  };
 }
 
 export interface ApprovalInfo {
