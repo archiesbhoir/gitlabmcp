@@ -7,7 +7,7 @@ global.fetch = vi.fn();
 describe('restRequest', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.GITLAB_BASE_URL = 'https://git.egnyte-internal.com';
+    process.env.GITLAB_BASE_URL = 'https://gitlab.example.com';
     process.env.GITLAB_TOKEN = 'test-token';
   });
 
@@ -27,7 +27,7 @@ describe('restRequest', () => {
 
     expect(result).toEqual(mockData);
     expect(global.fetch).toHaveBeenCalledWith(
-      'https://git.egnyte-internal.com/api/v4/projects/1',
+      'https://gitlab.example.com/api/v4/projects/1',
       expect.objectContaining({
         method: 'GET',
         headers: expect.objectContaining({
@@ -53,7 +53,7 @@ describe('restRequest', () => {
 describe('restPaginate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.GITLAB_BASE_URL = 'https://git.egnyte-internal.com';
+    process.env.GITLAB_BASE_URL = 'https://gitlab.example.com';
     process.env.GITLAB_TOKEN = 'test-token';
   });
 

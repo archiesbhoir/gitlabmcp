@@ -7,7 +7,7 @@ global.fetch = vi.fn();
 describe('graphqlRequest', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.GITLAB_BASE_URL = 'https://git.egnyte-internal.com';
+    process.env.GITLAB_BASE_URL = 'https://gitlab.example.com';
     process.env.GITLAB_TOKEN = 'test-token';
   });
 
@@ -27,7 +27,7 @@ describe('graphqlRequest', () => {
 
     expect(result).toEqual(mockData.data);
     expect(global.fetch).toHaveBeenCalledWith(
-      'https://git.egnyte-internal.com/api/graphql',
+      'https://gitlab.example.com/api/graphql',
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({

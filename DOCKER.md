@@ -49,7 +49,7 @@ docker run -d \
 docker run -d \
   --name gitlab-mcp \
   -p 8080:8080 \
-  -e GITLAB_BASE_URL=https://git.egnyte-internal.com \
+  -e GITLAB_BASE_URL=https://gitlab.example.com \
   -e GITLAB_TOKEN=your_token_here \
   gitlab-mcp
 ```
@@ -76,7 +76,7 @@ The container needs these environment variables:
 Create a `.env` file in the project root:
 
 ```bash
-GITLAB_BASE_URL=https://git.egnyte-internal.com
+GITLAB_BASE_URL=https://gitlab.example.com
 GITLAB_TOKEN=your_token_here
 PORT=8080
 ```
@@ -97,7 +97,7 @@ docker-compose up -d
 
 ```bash
 docker run -p 8080:8080 \
-  -e GITLAB_BASE_URL=https://git.egnyte-internal.com \
+  -e GITLAB_BASE_URL=https://gitlab.example.com \
   -e GITLAB_TOKEN=your_token_here \
   -e PORT=8080 \
   gitlab-mcp
@@ -109,7 +109,7 @@ You can also set them directly in `docker-compose.yml`:
 
 ```yaml
 environment:
-  - GITLAB_BASE_URL=https://git.egnyte-internal.com
+  - GITLAB_BASE_URL=https://gitlab.example.com
   - GITLAB_TOKEN=your_token_here
   - PORT=8080
 ```
