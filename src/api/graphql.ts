@@ -57,7 +57,8 @@ export async function graphqlRequest<T = unknown>(
 
         throw createGitLabError(
           GitLabErrorCode.GITLAB_RATE_LIMIT,
-          'Rate limit exceeded',
+          `Rate limit exceeded. Please retry after ${retryAfterSeconds} seconds.\n` +
+            'GitLab API rate limits: https://docs.gitlab.com/ee/api/#rate-limits',
           429,
           retryAfterSeconds
         );
@@ -66,7 +67,9 @@ export async function graphqlRequest<T = unknown>(
       if (response.status === 401 || response.status === 403) {
         throw createGitLabError(
           GitLabErrorCode.GITLAB_AUTH_ERR,
-          'Authentication failed. Token may be missing read_api or api scope.',
+          'Authentication failed. Token may be missing read_api or api scope.\n' +
+            'Create a token at: https://gitlab.com/-/profile/personal_access_tokens\n' +
+            'Required scopes: read_api (for read operations) or api (for read/write operations)',
           response.status
         );
       }

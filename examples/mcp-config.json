@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "gitlab-mcp": {
+      "command": "npx",
+      "args": ["@archisbhoir/gitlabmcp@latest"],
+      "env": {
+        "GITLAB_BASE_URL": "https://gitlab.com",
+        "GITLAB_TOKEN": "your_gitlab_token_here"
+      }
+    }
+  }
+}
+
+
+
