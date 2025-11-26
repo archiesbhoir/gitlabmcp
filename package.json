@@ -1,6 +1,6 @@
 {
   "name": "@archisbhoir/gitlabmcp",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "GitLab Merge Request Viewer via MCP",
   "main": "dist/index.js",
   "bin": {
